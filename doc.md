@@ -182,4 +182,33 @@ Uso de `hasattr` para não quebrar em ambientes onde `reconfigure` não existe (
 
 ## Task 5 — Configurar agendamento diário
 
-**Status:** pendente
+**Status:** concluída ✅
+
+### O que foi feito
+
+- Criado `.github/workflows/daily_digest.yml` com cron `0 9 * * *` (09h UTC = 06h BRT)
+- `workflow_dispatch` habilitado para rodar manualmente pelo GitHub UI sem esperar o horário
+- Cache de pip configurado (`cache: 'pip'`) — economiza ~40s por execução
+- Todos os secrets passados via `${{ secrets.* }}` — nenhuma credencial no código
+- Digest salvo como artefato com retenção de 30 dias (histórico acessível na aba Actions)
+- Repositório git inicializado com `.gitignore` protegendo `.env`, `outputs/`, `logs/`, `__pycache__/`
+- Primeiro commit realizado com 13 arquivos (925 linhas)
+
+### Dificuldades
+
+- `.env` com a GROQ_API_KEY real foi incluído automaticamente no `git add .` inicial. Detectado antes do commit.
+
+### Como resolvemos
+
+- Criado `.gitignore` antes do commit e executado `git rm --cached .env` para remover do staging sem apagar o arquivo local.
+
+### Próximos passos para ativar no GitHub
+
+1. Criar repositório em github.com (pode ser privado)
+2. `git remote add origin https://github.com/SEU_USER/morning-digest.git`
+3. `git push -u origin master`
+4. Em **Settings → Secrets and variables → Actions**, adicionar:
+   - `LLM_PROVIDER` = `groq` (ou `anthropic` quando migrar)
+   - `GROQ_API_KEY` = sua key
+   - `GROQ_MODEL` = `llama-3.3-70b-versatile`
+5. Testar em **Actions → Morning Digest → Run workflow**
