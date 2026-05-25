@@ -180,6 +180,119 @@ Uso de `hasattr` para não quebrar em ambientes onde `reconfigure` não existe (
 
 ---
 
+## Task 9 — Testar e fazer push das mudanças
+
+**Status:** concluída ✅
+
+### Resultado do teste (2026-05-25, 18:05, 42.2s)
+
+| Etapa | Resultado |
+|---|---|
+| RSS (7 fontes novas) | ✅ 14 itens — TechCrunch AI e VentureBeat entregando conteúdo relevante |
+| ArXiv | ⚠️ 0 itens — 429 rate limit (domingo, comportamento esperado) |
+| Papers with Code | ⚠️ 0 itens — fim de semana |
+| Filtro de relevância | ✅ 14 → 10 itens (4 descartados) |
+| Tokens enviados | ✅ 2.266 entrada (vs 4.268 antes) — **47% menos tokens** |
+| Groq (Llama 3.3 70B) | ✅ 927 tokens saída |
+| Formato "Alvorada Intelligence" | ✅ Novo formato com Pedradas, Provocação, Runflow/IFTL |
+
+### Qualidade do digest
+
+Digest muito mais alinhado ao perfil do Danrley:
+- "ClickUp Substitui Funcionários por Agentes AI" → 🔴 urgente
+- "Dívida de Prompt e Risco em Sistemas de IA" → provocação para LinkedIn
+- "Agentes AI e Falhas em Engenharia de Chaos" → impacto direto na Runflow
+
+### Bug encontrado e corrigido
+
+O LLM estava chutando a data do digest (`2026-05-26` em vez de `2026-05-25`). Causa: o prompt usa `{data}` como placeholder mas a data real nunca era passada. **Fix:** injetar `datetime.now().strftime("%d/%m/%Y")` no `build_user_message()`.
+
+### Dificuldades
+
+ArXiv voltou a retornar 429 no domingo — comportamento já documentado na Task 4. Em dias úteis as queries sequenciais com delay de 3s funcionam corretamente.
+
+---
+
+## Task 8 — Adicionar filtro de relevância por palavras-chave
+
+**Status:** concluída ✅
+
+### O que foi feito
+
+Criada a função `_is_relevant(item)` em `agent.py` com um conjunto de 40+ keywords divididas em 5 categorias estratégicas:
+
+| Categoria | Exemplos de keywords |
+|---|---|
+| Agentes & arquitetura | agent, langgraph, crewai, orchestrat, multi-agent |
+| LLMs & modelos | llm, gpt, claude, rag, embedding, fine-tun |
+| Produção & engenharia | deploy, production, memory, latency, sdk |
+| Negócios & mercado | enterprise, roi, acquisition, funding, m&a |
+| Automação & impacto | automation, workflow, cost reduct, efficiency |
+
+O filtro roda **após** deduplicação e **antes** de enviar ao LLM. O log exibe quantos itens foram descartados a cada execução.
+
+### Decisão de design: `set` de substrings, não regex
+
+Usado `any(kw in text for kw in RELEVANCE_KEYWORDS)` com um `set` Python. Matching por substring (não palavra exata) cobre variações morfológicas: `"agent"` captura `"agents"`, `"agentic"`, `"multi-agent"`; `"fine-tun"` captura `"fine-tuning"` e `"fine-tuned"`. Mais simples e rápido que regex para este volume de itens.
+
+### Dificuldades
+
+Nenhuma bloqueante. Ponto de atenção futuro: o filtro pode ser agressivo em dias com poucas notícias — se `relevant` ficar vazio, o agente encerra sem digest. O `if not items` em `main()` já cobre esse caso com log de aviso.
+
+---
+
+## Task 7 — Refinar fontes RSS — foco em Enterprise AI e Agentes
+
+**Status:** concluída ✅
+
+### O que foi feito
+
+**RSS_SOURCES — removidos (muito acadêmicos, pouco ROI):**
+| Fonte | Motivo |
+|---|---|
+| Quanta Magazine | Ciência pura, sem aplicação prática imediata |
+| Synced Review | Cobertura acadêmica genérica |
+| Stanford HAI | Foco em política e pesquisa, distante do dia a dia de CTO |
+
+**RSS_SOURCES — adicionados (Enterprise AI e Mercado):**
+| Fonte | Motivo |
+|---|---|
+| TechCrunch AI | Cobertura de M&A, startups e enterprise — essencial para visão de mercado |
+| VentureBeat | Conteúdo denso sobre agentes em produção e riscos de IA enterprise |
+
+**ARXIV_QUERIES — alterados:**
+| Mudança | Motivo |
+|---|---|
+| Removido `cat:quant-ph` | Computação Quântica não é foco estratégico atual da Runflow |
+| Adicionado `cat:cs.MA` | Multi-Agent Systems — direto ao core do Agent OS da Runflow |
+
+### Dificuldades
+
+VentureBeat retornou 404 em `/ai/feed/` — feed correto é o geral `/feed/`. Verificado com WebFetch antes de adicionar.
+
+---
+
+## Task 6 — Atualizar SYSTEM_PROMPT para o perfil do Danrley
+
+**Status:** concluída ✅
+
+### O que foi feito
+
+Substituído o SYSTEM_PROMPT genérico por um prompt personalizado para Danrley Morais (CTO Runflow / fundador IFTL). Mudanças principais:
+
+- **Persona:** "Agente Alvorada" — braço direito de inteligência do Danrley
+- **Filtro:** ROI, Agentes em Produção, M&A, Educação de Líderes
+- **Novo campo "Pedrada":** sugestão de postagem para LinkedIn/Instagram gerada automaticamente
+- **Impacto na Runflow/IFTL:** análise contextualizada nos negócios do Danrley
+- **Tom:** provocador, pragmático, estrategista técnico
+- **Formato de saída:** renomeado de "Morning Digest" para "Alvorada Intelligence"
+
+### Dificuldades
+
+Nenhuma — substituição direta do SYSTEM_PROMPT mantendo a separação system/user para prompt caching.
+
+---
+
 ## Task 5 — Configurar agendamento diário
 
 **Status:** concluída ✅

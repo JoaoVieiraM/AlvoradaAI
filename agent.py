@@ -76,22 +76,57 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 RSS_SOURCES = [
-    {"name": "MIT Technology Review", "url": "https://www.technologyreview.com/feed/",  "category": "news"},
-    {"name": "OpenAI Blog",           "url": "https://openai.com/blog/rss.xml",         "category": "lab"},
-    {"name": "HuggingFace Blog",      "url": "https://huggingface.co/blog/feed.xml",    "category": "lab"},
-    {"name": "Ben's Bites",           "url": "https://www.bensbites.com/feed",          "category": "newsletter"},
-    {"name": "Quanta Magazine",       "url": "https://www.quantamagazine.org/feed/",    "category": "science"},
-    {"name": "Synced Review",         "url": "https://syncedreview.com/feed/",          "category": "industry"},
-    {"name": "Stanford HAI",          "url": "https://hai.stanford.edu/news/rss.xml",   "category": "academic"},
-    {"name": "Towards Data Science",  "url": "https://towardsdatascience.com/feed",     "category": "community"},
+    # Mercado & Negócios — M&A, Enterprise, Startups
+    {"name": "TechCrunch AI",         "url": "https://techcrunch.com/category/artificial-intelligence/feed/", "category": "news"},
+    {"name": "VentureBeat",           "url": "https://venturebeat.com/feed/",                                 "category": "news"},
+    {"name": "MIT Technology Review", "url": "https://www.technologyreview.com/feed/",                        "category": "news"},
+    # Labs — atualizações de modelos e pesquisa aplicada
+    {"name": "OpenAI Blog",           "url": "https://openai.com/blog/rss.xml",                               "category": "lab"},
+    {"name": "HuggingFace Blog",      "url": "https://huggingface.co/blog/feed.xml",                          "category": "lab"},
+    # Newsletters — curadoria de builders e líderes de IA
+    {"name": "Ben's Bites",           "url": "https://www.bensbites.com/feed",                                "category": "newsletter"},
+    # Comunidade técnica — engenharia e implementação prática
+    {"name": "Towards Data Science",  "url": "https://towardsdatascience.com/feed",                           "category": "community"},
 ]
 
 ARXIV_QUERIES = [
-    "cat:cs.AI",
-    "cat:cs.LG",
-    "cat:cs.CL",
-    "cat:quant-ph",
+    "cat:cs.AI",   # Inteligência Artificial geral
+    "cat:cs.LG",   # Machine Learning
+    "cat:cs.CL",   # Processamento de Linguagem Natural / LLMs
+    "cat:cs.MA",   # Multi-Agent Systems — direto ao core da Runflow
 ]
+
+# ---------------------------------------------------------------------------
+# Filtro de relevância — alinhado ao perfil estratégico do Danrley
+# ---------------------------------------------------------------------------
+
+RELEVANCE_KEYWORDS = {
+    # Agentes e arquitetura
+    "agent", "agente", "agents", "multi-agent", "agentic", "langgraph",
+    "langchain", "crewai", "autogpt", "orchestrat",
+    # LLMs e modelos
+    "llm", "gpt", "claude", "gemini", "llama", "mistral", "inference",
+    "fine-tun", "rag", "retrieval", "embedding", "vector",
+    # Produção e engenharia
+    "production", "produção", "deploy", "deployment", "latency", "latência",
+    "memory", "memória", "framework", "api", "sdk", "benchmark",
+    # Negócios e mercado
+    "enterprise", "startup", "roi", "revenue", "receita", "acquisition",
+    "merger", "aquisição", "valuation", "funding", "série", "series",
+    "m&a", "partnership", "parceria",
+    # Automação e impacto
+    "automation", "automação", "autonomous", "autônomo", "workflow",
+    "cost reduct", "redução de custo", "efficiency", "eficiência",
+}
+
+
+def _is_relevant(item: dict) -> bool:
+    """Retorna True se o item contém ao menos uma keyword estratégica."""
+    text = (
+        f"{item.get('title', '')} {item.get('abstract', '')}"
+    ).lower()
+    return any(kw in text for kw in RELEVANCE_KEYWORDS)
+
 
 # ---------------------------------------------------------------------------
 # Coleta
@@ -126,8 +161,15 @@ async def collect_items() -> list[dict]:
             seen.add(url)
         unique.append(item)
 
-    log.info(f"Total: {len(unique)} itens únicos (de {len(all_items)} coletados)")
-    return unique
+    # Filtro de relevância — descarta itens sem keyword estratégica
+    relevant = [i for i in unique if _is_relevant(i)]
+    dropped = len(unique) - len(relevant)
+
+    log.info(
+        f"Total: {len(unique)} únicos → {len(relevant)} relevantes "
+        f"({dropped} descartados pelo filtro)"
+    )
+    return relevant
 
 # ---------------------------------------------------------------------------
 # Análise com LLM — despacha para o provider configurado
