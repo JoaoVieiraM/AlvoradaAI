@@ -1,0 +1,43 @@
+name: Morning Digest
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 09h00 UTC = 06h00 BRT (dias úteis e fins de semana)
+  workflow_dispatch:        # Permite rodar manualmente pelo GitHub UI
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'              # Cacheia dependências entre runs — reduz ~40s por execução
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Rodar agente
+        run: python agent.py
+        env:
+          LLM_PROVIDER:            ${{ secrets.LLM_PROVIDER }}
+          ANTHROPIC_API_KEY:       ${{ secrets.ANTHROPIC_API_KEY }}
+          GROQ_API_KEY:            ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL:              ${{ secrets.GROQ_MODEL }}
+          DIGEST_SMTP_HOST:        ${{ secrets.DIGEST_SMTP_HOST }}
+          DIGEST_SMTP_PORT:        ${{ secrets.DIGEST_SMTP_PORT }}
+          DIGEST_SMTP_USER:        ${{ secrets.DIGEST_SMTP_USER }}
+          DIGEST_SMTP_PASS:        ${{ secrets.DIGEST_SMTP_PASS }}
+          DIGEST_RECIPIENT_EMAIL:  ${{ secrets.DIGEST_RECIPIENT_EMAIL }}
+
+      - name: Upload digest como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ github.run_id }}
+          path: outputs/
+          retention-days: 30       # Mantém os últimos 30 dias de digests

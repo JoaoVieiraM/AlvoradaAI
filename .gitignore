@@ -1,0 +1,17 @@
+# Variáveis de ambiente — NUNCA commitar
+.env
+
+# Artefatos gerados em runtime
+outputs/
+logs/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
