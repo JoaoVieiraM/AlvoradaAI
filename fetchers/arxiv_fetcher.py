@@ -15,17 +15,19 @@ ARXIV_API = "https://export.arxiv.org/api/query"
 async def fetch_arxiv(queries: list[str], max_per_query: int = 3) -> list[dict]:
     """
     Busca papers do ArXiv para cada categoria.
-    Retorna apenas papers das últimas 24h.
+    Queries sequenciais com delay de 3s — recomendação oficial da API do ArXiv
+    para evitar HTTP 429 (rate limit).
     """
-    async with httpx.AsyncClient(timeout=30) as client:
-        tasks = [_fetch_category(client, q, max_per_query) for q in queries]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
     items = []
-    for r in results:
-        if isinstance(r, Exception):
-            continue
-        items.extend(r)
+    async with httpx.AsyncClient(timeout=30) as client:
+        for i, query in enumerate(queries):
+            if i > 0:
+                await asyncio.sleep(3)
+            try:
+                result = await _fetch_category(client, query, max_per_query)
+                items.extend(result)
+            except Exception:
+                continue
 
     return items
 

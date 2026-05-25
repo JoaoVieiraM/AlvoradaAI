@@ -109,7 +109,7 @@ async def collect_items() -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def call_llm(items: list[dict]) -> str:
-    provider = os.getenv("LLM_PROVIDER", "anthropic").lower()
+    provider = (os.getenv("LLM_PROVIDER") or "anthropic").lower()
     log.info(f"Provider LLM: {provider} | {len(items)} itens")
 
     if provider == "anthropic":
