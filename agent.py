@@ -29,6 +29,31 @@ import formatter
 load_dotenv()
 
 # ---------------------------------------------------------------------------
+# Validação de startup — falha rápido com mensagem clara
+# ---------------------------------------------------------------------------
+
+def _validate_env() -> None:
+    provider = (os.getenv("LLM_PROVIDER") or "anthropic").strip().lower()
+    missing = []
+
+    if provider == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
+        missing.append("ANTHROPIC_API_KEY")
+    elif provider == "groq" and not os.getenv("GROQ_API_KEY"):
+        missing.append("GROQ_API_KEY")
+    elif provider == "ollama":
+        pass  # Ollama não precisa de key
+    elif provider not in ("anthropic", "groq", "ollama"):
+        missing.append(f"LLM_PROVIDER válido (recebido: '{provider}' — use anthropic, groq ou ollama)")
+
+    if missing:
+        for m in missing:
+            print(f"[ERRO] Variável de ambiente obrigatória não configurada: {m}", flush=True)
+        print("[ERRO] Configure os secrets em: Settings → Secrets and variables → Actions", flush=True)
+        sys.exit(1)
+
+_validate_env()
+
+# ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
 
@@ -109,7 +134,7 @@ async def collect_items() -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def call_llm(items: list[dict]) -> str:
-    provider = (os.getenv("LLM_PROVIDER") or "anthropic").lower()
+    provider = (os.getenv("LLM_PROVIDER") or "anthropic").strip().lower()
     log.info(f"Provider LLM: {provider} | {len(items)} itens")
 
     if provider == "anthropic":
