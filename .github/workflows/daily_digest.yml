@@ -25,10 +25,10 @@ jobs:
       - name: Rodar agente
         run: python agent.py
         env:
-          LLM_PROVIDER:            ${{ secrets.LLM_PROVIDER }}
+          LLM_PROVIDER:            groq
+          GROQ_MODEL:              llama-3.3-70b-versatile
           ANTHROPIC_API_KEY:       ${{ secrets.ANTHROPIC_API_KEY }}
           GROQ_API_KEY:            ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL:              ${{ secrets.GROQ_MODEL }}
           DIGEST_SMTP_HOST:        ${{ secrets.DIGEST_SMTP_HOST }}
           DIGEST_SMTP_PORT:        ${{ secrets.DIGEST_SMTP_PORT }}
           DIGEST_SMTP_USER:        ${{ secrets.DIGEST_SMTP_USER }}
